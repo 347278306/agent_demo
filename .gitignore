@@ -6,3 +6,5 @@ nul
 *.pyc
 .env
 logs/
+rag/chroma_db/
+md5.text
