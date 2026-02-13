@@ -8,3 +8,4 @@ nul
 logs/
 rag/chroma_db/
 md5.text
+agent/tools/chroma_db/
