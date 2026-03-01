@@ -16,13 +16,13 @@ class ReactAgent():
 
     def execute_stream(self, query: str):
         input_dict = {
-            "message": [
+            "messages": [
                 {"role": "user", "content": query}
             ]
         }
 
         for chunk in self.agent.stream(input_dict, stream_mode="values", context={"report": False}):
-            latest_message = chunk["message"][-1]
+            latest_message = chunk["messages"][-1]
             if latest_message.content:
                 yield latest_message.content.strip() + "\n"
 
