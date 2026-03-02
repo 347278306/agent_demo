@@ -99,6 +99,24 @@ class VectorStoreService:
                 logger.error(f"[加载知识库]{path}加载失败：{str(e)}", exc_info=True)
                 continue
 
+    def get_retriever_by_type(self, file_type: str):
+        """按文件类型获取检索器"""
+        return self.vector_store.as_retriever(
+            search_kwargs={
+                "k": chroma_config["k"],
+                "filter": {"type": file_type}
+            }
+        )
+
+def create_paragraph_splitter():
+    """创建按段落分割的分块器"""
+    return RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=50,
+        separators=["\n\n", "\n"],  # 优先按照段落分割
+        length_function=len
+    )
+
 if __name__ == '__main__':
     service = VectorStoreService()
     service.load_document()

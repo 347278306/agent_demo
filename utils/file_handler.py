@@ -2,9 +2,11 @@ import hashlib
 import os.path
 
 from langchain_core.documents import Document
-from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
 
 from utils.logger_handler import logger
+from utils.path_tool import get_abs_path
+
 
 def get_file_md5_hex(filepath: str):
     """
@@ -54,3 +56,9 @@ def pdf_loader(filepath: str, passwd=None) -> list[Document]:
 
 def txt_loader(filepath: str) -> list[Document]:
     return TextLoader(filepath, encoding="utf-8").load()
+
+def docx_loader(filepath: str) -> list[Document]:
+    return Docx2txtLoader(filepath).load()
+
+if __name__ == '__main__':
+    loader = docx_loader(get_abs_path("data/健身规划.docx"))
