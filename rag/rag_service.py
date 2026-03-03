@@ -21,6 +21,7 @@ class RagSummarizeService(object):
         self.prompt_template = PromptTemplate.from_template(self.prompt_text)
         self.model = chat_model
         self.chain = self._init_chain()
+        self.conversation_history: list[dict] = []
 
     def _init_chain(self):
         chain = self.prompt_template | print_prompt | self.model | StrOutputParser()
@@ -44,6 +45,38 @@ class RagSummarizeService(object):
                 "context": context
             }
         )
+
+    def _build_context_with_history(self, query: str) -> str:
+        """构件包含对话历史的上下文"""
+        history_text = ""
+
+        # 添加历史对话
+        for msg in self.conversation_history[-5:]:  # 保留最近5轮
+            role = msg["role"]
+            context = msg["context"]
+            history_text += f"{role}: {context}\n"
+
+        # 添加当前问题
+        history_text += f"用户：{query}\n"
+        return history_text
+
+    def chat(self, query: str) -> str:
+        # 1. 获取检索结果
+        context_decs = self.retriever.invoke(query)
+        context = "\n\n".join([doc.page_content for doc in context_decs])
+
+        # 2. 构件完整的上下文（包含历史）
+        full_context = self._build_context_with_history(query)
+
+        # 3. 调用链
+        result = self.chain.invoke({"input": query, "context": context, "history": full_context})
+
+        # 4. 保存对话历史
+        self.conversation_history.append({"role": "用户", "context": query})
+        self.conversation_history.append({"role": "助手", "context": result})
+
+        return result
+
 
 class Answer(BaseModel):
     answer: str
@@ -72,7 +105,15 @@ class RagJsonService:
 
 if __name__ == '__main__':
     # rag = RagSummarizeService()
+    # rag = RagJsonService()
+    # res = rag.rag_summarize("扫地机器人的电池一般能用多久？")
+    # print(res)
 
-    rag = RagJsonService()
-    res = rag.rag_summarize("扫地机器人的电池一般能用多久？")
-    print(res)
+    # 使用示例
+    rag = RagSummarizeService()
+    # 第一轮
+    response1 = rag.chat("扫地机器人电池能用多久？")
+    print(response1)
+    # 第二轮（带上下文）
+    response2 = rag.chat("那充满电需要多长时间？")
+    print(response2)
