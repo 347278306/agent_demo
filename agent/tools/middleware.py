@@ -86,3 +86,14 @@ def rate_limiter(state: AgentState, runtime: Runtime):
     runtime.context["request_time"] = request_time_list
 
     return None
+
+@dynamic_prompt
+def sensitive_filter(request: ModelRequest):
+    """过滤敏感信息"""
+    # 检查是否包含敏感词，如有则替换
+    sensitive_words = ["密码", "身份证"]
+    prompt = request.system_prompt
+    for word in sensitive_words:
+        if word in prompt:
+            prompt = prompt.replace(word, "***")
+    return prompt
