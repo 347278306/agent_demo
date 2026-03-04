@@ -1,5 +1,7 @@
+import time
+
 from langchain.agents import AgentState
-from langchain_core.messages import ToolMessage
+from langchain_core.messages import ToolMessage, AIMessage
 from langchain.agents.middleware import wrap_tool_call, before_model, dynamic_prompt, ModelRequest
 from langchain.tools.tool_node import ToolCallRequest
 from langgraph.runtime import Runtime
@@ -65,3 +67,22 @@ def retry_tool(
 
     return Command(update={"messages": [ToolMessage(content=f"工具{request.tool_call['name']}重试{max_retries}次后仍然失败：{str(last_error)}")]})
 
+@before_model
+def rate_limiter(state: AgentState, runtime: Runtime):
+    """每分钟最多调用模型 20 次"""
+    # 使用 runtime.context 记录调用次数和时间
+    request_time_list = runtime.context.get("request_time", [])
+
+    # 删除一分钟前的调用记录
+    now_time = time.time()
+    request_time_list = [request_time for request_time in request_time_list if request_time > now_time - 60]
+
+    # 校验当前调用记录次数
+    if len(request_time_list) >= 20:
+        return Command(update={"messages": [AIMessage(content="请求过于频繁，请稍后再试")]})
+
+    # 添加将本次调用记录
+    request_time_list.append(now_time)
+    runtime.context["request_time"] = request_time_list
+
+    return None
