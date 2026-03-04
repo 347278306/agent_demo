@@ -44,3 +44,24 @@ def report_prompt_switch(request: ModelRequest):     # 动态切换提示词
         return load_report_prompts()
     else:
         return load_system_prompts()
+
+@wrap_tool_call
+def retry_tool(
+    request: ToolCallRequest,
+    handler: Callable,
+    max_retries: int = 3
+) -> ToolMessage | Command:
+    """工具失败自动重试"""
+    # 实现逻辑：失败时自动重试最多 max_retries 次
+    attempt = 0
+    last_error = None
+    while attempt < max_retries:
+        try:
+            return handler(request)
+        except Exception as e:
+            last_error = e
+            attempt += 1
+            logger.warning(f"工具{request.tool_call['name']}第{attempt}次失败：{str(e)}")
+
+    return Command(update={"messages": [ToolMessage(content=f"工具{request.tool_call['name']}重试{max_retries}次后仍然失败：{str(last_error)}")]})
+
