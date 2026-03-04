@@ -97,3 +97,31 @@ def sensitive_filter(request: ModelRequest):
         if word in prompt:
             prompt = prompt.replace(word, "***")
     return prompt
+
+@dynamic_prompt
+def intent_based_prompt(request: ModelRequest):
+    """根据用户意图选择提示词"""
+    messages = request.state.get("messages", [])
+    user_message = None
+    for msg in reversed(messages):
+        if hasattr(msg, "type") and msg.type == "human":
+            user_message = msg.content
+            break
+
+    if not user_message:
+        return request.system_prompt
+
+    # 意图关键词映射
+    intent_prompts = {
+        "技术问题": "你是一个技术专家，擅长解决各类技术问题...",
+        "投诉": "你是一个客服代表，善于处理客户投诉...",
+        "购买": "你是一个销售顾问，帮助用户选购产品...",
+        "售后": "你是一个售后服务专员，处理售后问题...",
+    }
+
+    for intent, prompt_template in intent_prompts.items():
+        if intent in user_message:
+            return prompt_template
+
+    # 默认返回原提示词
+    return request.system_prompt
